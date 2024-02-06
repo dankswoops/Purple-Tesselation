@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@latest/dist/tailwind.min.css" rel="stylesheet">
+    <title>Document</title>
+</head>
+<body>
+    <section id="tess" class="min-h-screen flex flex-col justify-center items-center bg-purple-900">
+        <canvas id="tesselation"></canvas>
+    </section>
+    <script>
+        var canv=document.getElementById("tesselation"), ctx=canv.getContext("2d"), cellSize=50, points=[], tris=[], sw=0, sh=0, padding=0.25, vw, vh;
+        function initTesselate(cell,id){
+            var header=document.getElementById("tess"),
+                bcr=header.getBoundingClientRect();
+            vw=bcr.width;
+            vh=bcr.height;
+            cellSize=cell;
+            canv.width=vw;
+            canv.height=vh;
+            generatePoints();
+            genTris();
+            paint(id);
+            header.classList.remove("no-canvas");
+        }
+        function generatePoints(){
+            points=[];
+            var active=1-padding,
+                cc=cellSize,
+                count=0;
+            for (var h=-cc;h<=vh+cc*2;h+=cc){
+                for (var w=-cc;w<=vw+cc;w+=cc){
+                    points.push([
+                        w+Math.random()*cc*active+padding/2,
+                        h+Math.random()*cc*active+padding/2
+                    ]);
+                }
+            }
+        }
+        function genTris(){
+            tris=[];
+            var counter=0;
+            sw=Math.floor(vw/cellSize)+3;
+            sh=Math.floor(vh/cellSize)+2;
+            var sq=[0,sw+1,1,sw],
+                indices=[0,sw+1,sw,0,1,sw+1,0,1,sw,1,sw+1,sw];
+            for (var h=0;h<sh;h++){
+                for (var w=0;w<sw-1;w++){
+                    var point=h*sw+w,
+                        coord=intersect(toFunc(points[point+sq[0]],points[point+sq[1]]),toFunc(points[point+sq[3]],points[point+sq[2]])),
+                        l1=Math.min(proxi(coord,points[point+sq[2]]),proxi(coord,points[point+sq[3]])),
+                        l2=Math.min(proxi(coord,points[point+sq[0]]),proxi(coord,points[point+sq[1]]));
+                    var farthest=l1>l2?0:1;
+                    for (var i=0;i<2;i++){
+                        tris.push([]);
+                        for (var j=0;j<3;j++){
+                            tris[counter+i].push(points[point+indices[6*farthest+i*3+j]]);
+                        }
+                    }
+                    counter+=2;
+                }
+            }
+        }
+        function paint(id){
+            for (var i=0;i<tris.length;i++){
+                var hsl=getHSL(id);
+                ctx.fillStyle=hsl[0];
+                ctx.strokeStyle=hsl[1];
+                ctx.beginPath();
+                ctx.moveTo(tris[i][0][0],tris[i][0][1]);
+                for (var n=1;n<3;n++){
+                ctx.lineTo(tris[i][n][0],tris[i][n][1]);
+                }
+                ctx.fill();
+                ctx.stroke();
+            }
+        }
+        function getHSL(id){
+            switch(id){
+                case 0:
+                var cols=[78,123,167],
+                    h=cols[Math.floor(Math.random()*cols.length)];
+                var s=Math.floor(Math.random()*5)+60,
+                    l=Math.floor(Math.random()*20)+40,
+                    col="hsl("+h+","+s+"%,"+l+"%)",
+                    stroke="hsl("+h+","+s+"%,"+(20+l)+"%)";
+                return [col,stroke];
+                case 1:
+                var l=Math.random()*10+90,
+                    col="hsl(0,0%,"+l+"%)";
+                return [col,col];
+                case 2:
+                var s=Math.floor(Math.random()*10)+50,
+                            l=Math.floor(Math.random()*15)+30,
+                            col="hsl(215,"+s+"%,"+l+"%)";
+                return [col,col];
+                case 3:
+                var cols=[200,215],//[200,21],
+                    h=cols[Math.floor(Math.random()*cols.length)];
+                var s=Math.floor(Math.random()*5)+60,
+                    l=Math.floor(Math.random()*20)+40,
+                    col="hsl("+h+","+s+"%,"+l+"%)",
+                    stroke="hsl("+h+","+s+"%,"+(20+l)+"%)";
+                return [col,stroke];
+                case 4:
+                var cols=[210,215],
+                    h=cols[Math.floor(Math.random()*cols.length)];
+                var s=Math.floor(Math.random()*5)+40,
+                    l=Math.floor(Math.random()*20)+35,
+                    col="hsl("+h+","+s+"%,"+l+"%)";
+                return [col,col];
+                case 5:
+                if (Math.random()<0.95){
+                    var l=Math.floor(Math.random()*10)+5,
+                        col="hsl(0,0%,"+l+"%)";
+                    return [col,col];
+                }else{
+                    var cols=[215,0],
+                    h=cols[Math.floor(Math.random()*cols.length)];
+                    var s=Math.floor(Math.random()*5)+40,
+                        l=Math.floor(Math.random()*20)+35,
+                        col="hsl("+h+","+s+"%,"+l+"%)";
+                    return [col,col];
+                }
+                case 6:
+                //hsl(269, 71%, 15%)
+                var cols=[285,290],
+                    h=cols[Math.floor(Math.random()*cols.length)];
+                var s=Math.floor(Math.random()*5)+60,
+                    l=Math.floor(Math.random()*5)+10,
+                    col="hsl("+h+","+s+"%,"+l+"%)",
+                    stroke="hsl("+h+","+(s-20)+"%,"+(l+7)+"%)";
+                return [col,stroke];
+            }
+        }
+        function toFunc(p1,p2){
+            var dx=p2[0]-p1[0],dy=p2[1]-p1[1];
+            var k=dy/dx;
+            var m=p1[1]-k*p1[0];
+            return [k,m];
+        }
+        function intersect(f1,f2){
+            var tmpx1=f1[0];
+            f1[0]+=f2[0]*-1;
+            f2[1]+=f1[1]*-1;
+            var x=f2[1]/f1[0];
+            return [x,tmpx1*x+f1[1]];
+        }
+        function proxi(c1,c2){
+            return Math.sqrt(Math.pow(c1[0]-c2[0],2)+Math.pow(c1[1]-c2[1],2));
+        }
+        var now=Date.now();
+        initTesselate(70,6);
+        console.log(Date.now()-now);
+    </script>
+</body>
+</html>
